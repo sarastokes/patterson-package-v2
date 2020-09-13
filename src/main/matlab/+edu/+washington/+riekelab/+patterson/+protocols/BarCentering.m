@@ -46,13 +46,14 @@ classdef BarCentering < edu.washington.riekelab.protocols.RiekeLabStageProtocol
         function prepareRun(obj)
             prepareRun@edu.washington.riekelab.protocols.RiekeLabStageProtocol(obj);
 
-            % Create the matrix of bar positions.
-            numReps = ceil(double(obj.numberOfAverages) / length(obj.positions));
+            if rem(obj.numberOfAverages, numel(obj.positions)) ~= 0
+                error('numberOfAverages is not a factor of positions');
+            end
+    
+            numReps = ceil(obj.numberOfAverages / numel(obj.positions);
             
-            % Get the array of radii.
-            pos = obj.positions(:) * ones(1, numReps);
+            pos = obj.positions(:) * ones(1, obj.numberOfAverages / numel(obj.positions));
             pos = pos(:);
-            % Convert from um to pix
             pos = obj.rig.getDevice('Stage').um2pix(pos);
             obj.xaxis = pos';
 
