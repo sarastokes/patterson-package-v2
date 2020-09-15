@@ -1,4 +1,5 @@
 classdef GratingTemporal < edu.washington.riekelab.protocols.RiekeLabStageProtocol
+% 2020-09-13    SSP
 
     properties 
         amp
@@ -41,16 +42,6 @@ classdef GratingTemporal < edu.washington.riekelab.protocols.RiekeLabStageProtoc
             [obj.amp, obj.ampType] = obj.createDeviceNamesProperty('Amp');
         end
 
-        function p = getPreview(obj, panel)
-            if isempty(obj.rig.getDevices('Stage'))
-                p = [];
-                return
-            end
-            p = io.github.stage_vss.previews.StagePreview(panel,...
-                @()obj.createPresentation(),...
-                'windowSize', obj.rig.getDevice('Stage').getCanvasSize());
-        end
-
         function prepareRun(obj)
             prepareRun@edu.washington.riekelab.protocols.RiekeLabStageProtocol(obj);
 
@@ -88,10 +79,10 @@ classdef GratingTemporal < edu.washington.riekelab.protocols.RiekeLabStageProtoc
             device = obj.rig.getDevice('Stage');
             canvasSize = device.getCanvasSize();
 
-            p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3);
+            p = stage.core.Presentation((obj.preTime + obj.waitTime + obj.stimTime + obj.tailTime) * 1e-3);
             p.setBackgroundColor(obj.backgroundIntensity);
 
-            grate = stage.builtin.stimuli.Image(uint8(0 * obj.rawImage));
+            grate = stage.builtin.stimuli.Image(uint8(0 * obj.baseGrating));
             grate.position = canvasSize / 2;
             grate.size = ceil(sqrt(canvasSize(1)^2 + canvasSize(2)^2))*ones(1,2);
             grate.orientation = obj.direction;
@@ -100,23 +91,23 @@ classdef GratingTemporal < edu.washington.riekelab.protocols.RiekeLabStageProtoc
             p.addStimulus(grate);
             
             grateVisible = stage.builtin.controllers.PropertyController(grate, 'visible', ...
-                @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
+                @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.waitTime + obj.stimTime) * 1e-3);
             p.addController(grateVisible);
 
             imgController = stage.builtin.controllers.PropertyController(grate, 'imageMatrix',...
-                @(state)setDriftingGrating(obj, state.time - (obj.preTime + obj.waitTime) * 1e-3));
+                @(state)setGratingDrift(obj, state.time - (obj.preTime + obj.waitTime) * 1e-3));
             p.addController(imgController);
 
-            function g = setDriftingGrating(obj, time)
+            function g = setGratingDrift(obj, time)
                 if time >= 0
                     phase = obj.temporalFrequency * time * 2 * pi;
                 else
                     phase = 0;
                 end
                 
-                g = cos(phase + obj.rawImage);
+                g = cos(phase + obj.baseGrating);
                 
-                if strcmp(obj.spatialClass, 'squarewave')
+                if strcmp(obj.gratingClass, 'squarewave')
                     g = sign(g);
                 end
                 
@@ -125,18 +116,18 @@ classdef GratingTemporal < edu.washington.riekelab.protocols.RiekeLabStageProtoc
             end
         end
 
-        function setGrating(obj)
+        function setBaseGrating(obj)
             device = obj.rig.getDevice('Stage');
             canvasSize = device.getCanvasSize();
             sz = ceil(sqrt(canvasSize(1)^2 + canvasSize(2)^2));
             [x,y] = meshgrid(...
-                linspace(-sz/2, sz/2, sz/obj.DOWNSAMPLE), ...
-                linspace(-sz/2, sz/2, sz/obj.DOWNSAMPLE));
+                linspace(-sz/2, sz/2, sz), ...
+                linspace(-sz/2, sz/2, sz));
             
             x = x / min(canvasSize) * 2 * pi;
             y = y / min(canvasSize) * 2 * pi;
 
-            img = (cos(0)*x + sin(0) * y) * obj.spatialFrequency;
+            img = (cos(0) * x + sin(0) * y) * obj.spatialFrequency;
             obj.baseGrating = repmat(img(1, :), [1, 1, 3]);
         end
 
@@ -144,7 +135,7 @@ classdef GratingTemporal < edu.washington.riekelab.protocols.RiekeLabStageProtoc
             prepareEpoch@edu.washington.riekelab.protocols.RiekeLabStageProtocol(obj, epoch);
             
             device = obj.rig.getDevice(obj.amp);
-            duration = (obj.preTime + obj.stimTime + obj.tailTime) / 1e3;
+            duration = (obj.preTime + obj.waitTime + obj.stimTime + obj.tailTime) / 1e3;
             epoch.addDirectCurrentStimulus(device, device.background, duration, obj.sampleRate);
             epoch.addResponse(device);
 

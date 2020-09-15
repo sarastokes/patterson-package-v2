@@ -1,5 +1,12 @@
 # CHANGELOG
 
+### 20200915
+- Added `BarDirection` and `BarSpeed`
+
+### 20200914
+- Debugged grating stimuli
+- Added `demo\` folder to circumvent difficulties with simulated rigs
+
 ### 20200913
 - Added a few extra missing figures
 - Added grating stimuli: `GratingDirection`, `GratingSpatial`, `GratingTemporal`

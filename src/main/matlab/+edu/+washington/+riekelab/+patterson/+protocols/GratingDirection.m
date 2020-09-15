@@ -1,4 +1,5 @@
 classdef GratingDirection < edu.washington.riekelab.protocols.RiekeLabStageProtocol
+% 2020-09-13    SSP
 
     properties 
         amp
@@ -85,10 +86,10 @@ classdef GratingDirection < edu.washington.riekelab.protocols.RiekeLabStageProto
             device = obj.rig.getDevice('Stage');
             canvasSize = device.getCanvasSize();
 
-            p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3);
+            p = stage.core.Presentation((obj.preTime + obj.waitTime + obj.stimTime + obj.tailTime) * 1e-3);
             p.setBackgroundColor(obj.backgroundIntensity);
 
-            grate = stage.builtin.stimuli.Image(uint8(0 * obj.rawImage));
+            grate = stage.builtin.stimuli.Image(uint8(0 * obj.baseGrating));
             grate.position = canvasSize / 2;
             grate.size = ceil(sqrt(canvasSize(1)^2 + canvasSize(2)^2))*ones(1,2);
             grate.orientation = obj.direction;
@@ -97,23 +98,23 @@ classdef GratingDirection < edu.washington.riekelab.protocols.RiekeLabStageProto
             p.addStimulus(grate);
             
             grateVisible = stage.builtin.controllers.PropertyController(grate, 'visible', ...
-                @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
+                @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.waitTime + obj.stimTime) * 1e-3);
             p.addController(grateVisible);
 
             imgController = stage.builtin.controllers.PropertyController(grate, 'imageMatrix',...
-                @(state)setDriftingGrating(obj, state.time - (obj.preTime + obj.waitTime) * 1e-3));
+                @(state)getGratingDrift(obj, state.time - (obj.preTime + obj.waitTime) * 1e-3));
             p.addController(imgController);
 
-            function g = setDriftingGrating(obj, time)
+            function g = getGratingDrift(obj, time)
                 if time >= 0
                     phase = obj.temporalFrequency * time * 2 * pi;
                 else
                     phase = 0;
                 end
                 
-                g = cos(phase + obj.rawImage);
+                g = cos(phase + obj.baseGrating);
                 
-                if strcmp(obj.spatialClass, 'squarewave')
+                if strcmp(obj.gratingClass, 'squarewave')
                     g = sign(g);
                 end
                 
@@ -122,7 +123,7 @@ classdef GratingDirection < edu.washington.riekelab.protocols.RiekeLabStageProto
             end
         end
 
-        function setGrating(obj)
+        function setBaseGrating(obj)
             device = obj.rig.getDevice('Stage');
             canvasSize = device.getCanvasSize();
             sz = ceil(sqrt(canvasSize(1)^2 + canvasSize(2)^2));
@@ -141,14 +142,14 @@ classdef GratingDirection < edu.washington.riekelab.protocols.RiekeLabStageProto
             prepareEpoch@edu.washington.riekelab.protocols.RiekeLabStageProtocol(obj, epoch);
             
             device = obj.rig.getDevice(obj.amp);
-            duration = (obj.preTime + obj.stimTime + obj.tailTime) / 1e3;
+            duration = (obj.preTime + obj.waitTime + obj.stimTime + obj.tailTime) / 1e3;
             epoch.addDirectCurrentStimulus(device, device.background, duration, obj.sampleRate);
             epoch.addResponse(device);
 
             obj.direction = obj.allDirections(obj.numEpochsCompleted+1);
             epoch.addParameter('direction')
 
-            obj.setGrating();
+            obj.setBaseGrating();
         end
 
         function tf = shouldContinuePreparingEpochs(obj)

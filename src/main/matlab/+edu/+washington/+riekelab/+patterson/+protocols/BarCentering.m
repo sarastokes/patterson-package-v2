@@ -50,11 +50,8 @@ classdef BarCentering < edu.washington.riekelab.protocols.RiekeLabStageProtocol
                 error('numberOfAverages is not a factor of positions');
             end
     
-            numReps = ceil(obj.numberOfAverages / numel(obj.positions);
-            
             pos = obj.positions(:) * ones(1, obj.numberOfAverages / numel(obj.positions));
-            pos = pos(:);
-            pos = obj.rig.getDevice('Stage').um2pix(pos);
+            pos = obj.rig.getDevice('Stage').um2pix(pos(:));
             obj.xaxis = pos';
 
             rgb = edu.washington.riekelab.patterson.utils.multigradient(...

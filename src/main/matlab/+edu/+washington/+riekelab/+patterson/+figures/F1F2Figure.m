@@ -22,11 +22,10 @@ classdef F1F2Figure < symphonyui.core.FigureHandler
         xName               % X-axis name, as specified in epoch parameters
         waitTime            % Delay between stimTime and modulation onset
         titlestr            % Figure title
-        axisType            % Linear or log (default = linear)
         showF2              % Show F2 amplitude? (default = true)
     end
     
-    properties (Hidden = true, Access = private)
+    properties (Hidden, Access = private)
         axesHandle
         lineHandle
         repsPerX
@@ -55,13 +54,11 @@ classdef F1F2Figure < symphonyui.core.FigureHandler
             ip.addParameter('waitTime', 0, @(x)isnumeric(x));
             ip.addParameter('xName', [], @(x)ischar(x));
             ip.addParameter('titlestr', [], @(x)ischar(x));
-            ip.addParameter('axisType', 'linear', @(x)ischar(x));
             ip.parse(varargin{:});
             
             obj.temporalFrequency = ip.Results.temporalFrequency;
             obj.waitTime = ip.Results.waitTime;
             obj.titlestr = ip.Results.titlestr;
-            obj.axisType = ip.Results.axisType;
             obj.showF2 = ip.Results.showF2;
             obj.xName = ip.Results.xName;
             
@@ -91,8 +88,7 @@ classdef F1F2Figure < symphonyui.core.FigureHandler
                 'Parent', obj.figureHandle,...
                 'FontName', get(obj.figureHandle, 'DefaultUicontrolFontName'),...
                 'FontSize', get(obj.figureHandle, 'DefaultLegendFontSize'),...
-                'XTickMode', 'auto',...
-                'XScale', obj.axisType);
+                'XTickMode', 'auto');
             
             obj.axesHandle(2) = subplot(3,1,3,...
                 'Parent', obj.figureHandle,...
@@ -137,7 +133,7 @@ classdef F1F2Figure < symphonyui.core.FigureHandler
             quantities = response.getData();
             sampleRate = response.sampleRate.quantityInBaseUnits;
             
-            prePts = obj.preTime * 1e-3 * sampleRate;
+            prePts = (obj.preTime+obj.waitTime) * 1e-3 * sampleRate;
             stimFrames = obj.stimTime * 1e-3 * obj.BINRATE;
             
             if isempty(obj.xName)
@@ -199,14 +195,12 @@ classdef F1F2Figure < symphonyui.core.FigureHandler
             line(obj.xvals, obj.P1,...
                 'Parent', obj.axesHandle(2),...
                 'Color', 'k', 'Marker', 'o');
-            
-            %xlim(obj.axesHandle(:), [min(obj.xvals), max(obj.xvals)]);            
         end
     end
     
     methods (Access = private)
         function onSelectedCaptureFigure(obj, ~, ~)
-            [fileName, pathName] = uiputfile('bar.png', 'Save result as');
+            [fileName, pathName] = uiputfile('grating.png', 'Save result as');
             if ~ischar(fileName) || ~ischar(pathName)
                 return;
             end

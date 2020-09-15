@@ -48,10 +48,6 @@ classdef OnsetOffsetFigure < symphonyui.core.FigureHandler
             obj.recordingType = ip.Results.recordingType;
             obj.xName = ip.Results.xName;
             
-            % obj.countByX = zeros(size(unique(xRange)));
-            % obj.onsetByX = zeros(size(obj.countByX));
-            % obj.offsetByX = zeros(size(obj.countByX));
-            
             obj.createUi();
         end
         
@@ -86,7 +82,6 @@ classdef OnsetOffsetFigure < symphonyui.core.FigureHandler
                 otherwise
                     ylabel(obj.axesHandle,'Charge transfer (pC)')
             end
-            
         end
         
         function clear(obj)
@@ -136,12 +131,9 @@ classdef OnsetOffsetFigure < symphonyui.core.FigureHandler
             % Epoch x-value
             if isempty(obj.xName)
                 xValue = obj.xRange(obj.epochNum);
-                % xIndex = obj.epochNum;
             else
                 xValue = epoch.parameters(obj.xName);
-                % xIndex = obj.xvals == xValue;
             end
-            % obj.countByX(xIndex) = obj.countByX(xIndex) + 1;
             
             if isempty(obj.dataTable)
                 obj.dataTable = table(xValue, onset, offset,...

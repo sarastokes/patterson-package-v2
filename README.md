@@ -1,2 +1,2 @@
-# patterson-motion-package
+# patterson-package2
 Electrophysiology protocols for Symphony and Stage
