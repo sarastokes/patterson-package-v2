@@ -1,5 +1,8 @@
 # CHANGELOG
 
+### 20200916
+- Added `TestModulation` that runs on `SimulatedConfocal` and demos `F1F2Figure` with real data. To Do: remove dependency on `SineGenerator` for simplicity
+
 ### 20200915
 - Added `BarDirection` and `BarSpeed`
 - Added `demo\` with stimulus demos

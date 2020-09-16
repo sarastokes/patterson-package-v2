@@ -23,6 +23,7 @@ classdef F1F2Figure < symphonyui.core.FigureHandler
         waitTime            % Delay between stimTime and modulation onset
         titlestr            % Figure title
         showF2              % Show F2 amplitude? (default = true)
+        debug               % Bring in demo data to test calculations
     end
     
     properties (Hidden, Access = private)
@@ -32,6 +33,8 @@ classdef F1F2Figure < symphonyui.core.FigureHandler
         F2           
         P1       
         epochNum
+
+        debugData
     end
     
     properties (Constant = true, Hidden = true)
@@ -53,6 +56,7 @@ classdef F1F2Figure < symphonyui.core.FigureHandler
             ip.addParameter('waitTime', 0, @(x)isnumeric(x));
             ip.addParameter('xName', [], @(x)ischar(x));
             ip.addParameter('titlestr', [], @(x)ischar(x));
+            ip.addParameter('debug', false, @islogical);
             ip.parse(varargin{:});
             
             obj.temporalFrequency = ip.Results.temporalFrequency;
@@ -60,11 +64,17 @@ classdef F1F2Figure < symphonyui.core.FigureHandler
             obj.titlestr = ip.Results.titlestr;
             obj.showF2 = ip.Results.showF2;
             obj.xName = ip.Results.xName;
+            obj.debug = ip.Results.debug;
             
             obj.F1 = zeros(size(obj.xvals));
             obj.F2 = zeros(size(obj.xvals));
             obj.P1 = zeros(size(obj.xvals));
             obj.repsPerX = zeros(size(obj.xvals));
+
+            if obj.debug
+                dataDir = [fileparts(fileparts(mfilename('fullpath'))), '\+test\'];
+                obj.debugData = dlmread([dataDir, 'demo_modulation_data.txt']);
+            end
             
             obj.epochNum = 0;
             
@@ -128,9 +138,14 @@ classdef F1F2Figure < symphonyui.core.FigureHandler
                 tempFreq = obj.temporalFrequency;
             end
             
-            response = epoch.getResponse(obj.device);
-            quantities = response.getData();
-            sampleRate = response.sampleRate.quantityInBaseUnits;
+            if ~obj.debug
+                response = epoch.getResponse(obj.device);
+                quantities = response.getData();
+                sampleRate = response.sampleRate.quantityInBaseUnits;
+            else
+                quantities = obj.debugData(obj.epochNum, :);
+                sampleRate = 10000;
+            end
             
             prePts = (obj.preTime+obj.waitTime) * 1e-3 * sampleRate;
             stimFrames = obj.stimTime * 1e-3 * obj.BINRATE;

@@ -147,7 +147,7 @@ classdef GratingDirection < edu.washington.riekelab.protocols.RiekeLabStageProto
             epoch.addResponse(device);
 
             obj.direction = obj.allDirections(obj.numEpochsCompleted+1);
-            epoch.addParameter('direction')
+            epoch.addParameter('direction');
 
             obj.setBaseGrating();
         end
