@@ -29,14 +29,13 @@ classdef AreaSummationFigure < symphonyui.core.FigureHandler
             obj.recordingType = ip.Results.recordingType;
             obj.preTime = ip.Results.preTime;
             obj.stimTime = ip.Results.stimTime;
-            
-            
+                        
             obj.createUi();
         end
         
         function createUi(obj)
             import appbox.*;
-            iconDir = [fileparts(fileparts(mfilename('fullpath'))), '\+utils\+icons\'];
+            iconDir = [fileparts(fileparts(mfilename('fullpath'))), '\+icons\'];
             toolbar = findall(obj.figureHandle, 'Type', 'uitoolbar');
             fitGaussianButton = uipushtool( ...
                 'Parent', toolbar, ...

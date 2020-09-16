@@ -30,10 +30,6 @@ classdef GratingSpatial < edu.washington.riekelab.protocols.RiekeLabStageProtoco
         baseGrating 
     end
 
-    properties (Hidden, Constant = true)
-        DOWNSAMPLE = 3;
-    end
-
     methods 
         function didSetRig(obj)
             didSetRig@edu.washington.riekelab.protocols.RiekeLabStageProtocol(obj);

@@ -31,10 +31,6 @@ classdef GratingTemporal < edu.washington.riekelab.protocols.RiekeLabStageProtoc
         baseGrating 
     end
 
-    properties (Hidden, Constant = true)
-        DOWNSAMPLE = 3;
-    end
-
     methods 
         function didSetRig(obj)
             didSetRig@edu.washington.riekelab.protocols.RiekeLabStageProtocol(obj);

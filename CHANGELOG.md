@@ -2,6 +2,8 @@
 
 ### 20200915
 - Added `BarDirection` and `BarSpeed`
+- Added `demo\` with stimulus demos
+- More fixes to dependencies - little things like icons etc
 
 ### 20200914
 - Debugged grating stimuli
