@@ -44,9 +44,10 @@ classdef TestModulation < edu.washington.riekelab.protocols.RiekeLabProtocol
                 'recordingType', obj.onlineAnalysis, 'sweepColor', rgb);
             if ~strcmp(obj.onlineAnalysis, 'none')
                 obj.showFigure('edu.washington.riekelab.patterson.figures.F1F2Figure',...
-                    obj.rig.getDevice(obj.amp), unique(obj.contrasts), obj.onlineAnalysis,...
-                    obj.preTime, obj.stimTime, 'temporalFrequency', obj.temporalFrequency,...
-                    'xName', 'contrast', 'showF2', false, 'debug', true);
+                    obj.rig.getDevice(obj.amp), obj.onlineAnalysis,...
+                    obj.preTime, obj.stimTime, 'TemporalFrequency', obj.temporalFrequency,...
+                    'VariedParameterName', 'contrast', 'ShowF2', true, 'Debug', true,...
+                    'GraphTitle', 'Debug F1F2Figure');
             end
 
             device1 = obj.rig.getDevice(obj.led);
@@ -56,7 +57,7 @@ classdef TestModulation < edu.washington.riekelab.protocols.RiekeLabProtocol
 
          function stim1 = createLedStimulus(obj, amplitude)
 
-            gen = edu.washington.riekelab.patterson.stimuli.SineGenerator();
+            gen = symphonyui.builtin.stimuli.SineGenerator();
             
             gen.preTime = obj.preTime;
             gen.stimTime = obj.stimTime;

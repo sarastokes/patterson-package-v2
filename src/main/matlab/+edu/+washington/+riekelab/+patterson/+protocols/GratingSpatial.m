@@ -1,5 +1,4 @@
 classdef GratingSpatial < edu.washington.riekelab.protocols.RiekeLabStageProtocol
-% 2020-09-13    SSP
 
     properties 
         amp
@@ -12,6 +11,7 @@ classdef GratingSpatial < edu.washington.riekelab.protocols.RiekeLabStageProtoco
         gratingClass = 'squarewave'     % Grating type
         direction = 0                   % Grating direction (degrees) 
         spatialFrequencies = [0.5, 1, 2, 5, 10, 15, 20]  % Cycles per short axis of screen
+        apertureDiameter = 0            % Aperture diameter (pixels)
         backgroundIntensity = 0.5       % Mean light level (0-1)
         onlineAnalysis = 'none'         % Analysis type
         randomOrder = false             % Randomize epochs?
@@ -37,16 +37,6 @@ classdef GratingSpatial < edu.washington.riekelab.protocols.RiekeLabStageProtoco
             [obj.amp, obj.ampType] = obj.createDeviceNamesProperty('Amp');
         end
 
-        function p = getPreview(obj, panel)
-            if isempty(obj.rig.getDevices('Stage'))
-                p = [];
-                return
-            end
-            p = io.github.stage_vss.previews.StagePreview(panel,...
-                @()obj.createPresentation(),...
-                'windowSize', obj.rig.getDevice('Stage').getCanvasSize());
-        end
-
         function prepareRun(obj)
             prepareRun@edu.washington.riekelab.protocols.RiekeLabStageProtocol(obj);
 
@@ -64,7 +54,8 @@ classdef GratingSpatial < edu.washington.riekelab.protocols.RiekeLabStageProtoco
 
             % Setup figures
             rgb = edu.washington.riekelab.patterson.utils.multigradient(...
-                'preset', 'div.cb.spectral.9', 'length', numel(obj.spatialFrequencies));
+                'preset', 'div.cb.spectral.9',... 
+                'length', numel(unique(obj.spatialFrequencies)));
 
             obj.showFigure('symphonyui.builtin.figures.ResponseFigure',...
                 obj.rig.getDevice(obj.amp));
@@ -76,15 +67,18 @@ classdef GratingSpatial < edu.washington.riekelab.protocols.RiekeLabStageProtoco
 
             if ~strcmp(obj.onlineAnalysis, 'none')
                 obj.showFigure('edu.washington.riekelab.patterson.figures.F1F2Figure',...
-                    obj.rig.getDevice(obj.amp), obj.spatialFrequencies, obj.onlineAnalysis,...
-                    obj.preTime, obj.stimTime, 'waitTime', obj.waitTime,...
-                    'xName', 'spatialFrequency', 'showF2', false);
+                    obj.rig.getDevice(obj.amp), obj.onlineAnalysis,...
+                    obj.preTime, obj.stimTime, 'WaitTime', obj.waitTime,...
+                    'TemporalFrequency', obj.temporalFrequency,...
+                    'VariedParameterName', 'spatialFrequency',...
+                    'GraphName', 'Spatial Frequency Tuning');
             end
         end
 
         function p = createPresentation(obj)
             device = obj.rig.getDevice('Stage');
             canvasSize = device.getCanvasSize();
+            centerOffsetPix = obj.rig.getDevice('Stage').um2pix(obj.centerOffset);
 
             p = stage.core.Presentation((obj.preTime + obj.waitTime + obj.stimTime + obj.tailTime) * 1e-3);
             p.setBackgroundColor(obj.backgroundIntensity);
@@ -104,6 +98,17 @@ classdef GratingSpatial < edu.washington.riekelab.protocols.RiekeLabStageProtoco
             imgController = stage.builtin.controllers.PropertyController(grate, 'imageMatrix',...
                 @(state)getGratingDrift(obj, state.time - (obj.preTime + obj.waitTime) * 1e-3));
             p.addController(imgController);
+
+            if obj.apertureDiameter > 0
+                aperture = stage.builtin.stimuli.Rectangle();
+                aperture.position = canvasSize/2 + centerOffsetPix;
+                aperture.color = obj.backgroundIntensity;
+                aperture.size = 2 * max(canvasSize) * ones(1, 2);
+                mask = stage.core.Mask.createCircularAperture(...
+                    obj.apertureDiameter / (2 * max(canvasSize)));
+                aperture.setMask(mask);
+                p.addStimulus(aperture);
+            end
 
             function g = getGratingDrift(obj, time)
                 if time >= 0

@@ -13,6 +13,7 @@ classdef GratingTemporal < edu.washington.riekelab.protocols.RiekeLabStageProtoc
         direction = 0                   % Grating direction (degrees) 
         spatialFrequency = 2            % Cycles per short axis of screen
         backgroundIntensity = 0.5       % Mean light level (0-1)
+        apertureDiameter = 0            % Aperture diameter (pixels)
         onlineAnalysis = 'none'         % Analysis type
         randomOrder = false             % Randomize epochs?
         numberOfAverages = uint16(36)   % Number of stimulus presentations
@@ -54,7 +55,8 @@ classdef GratingTemporal < edu.washington.riekelab.protocols.RiekeLabStageProtoc
 
             % Setup figures
             rgb = edu.washington.riekelab.patterson.utils.multigradient(...
-                'preset', 'div.cb.spectral.9', 'length', numel(obj.temporalFrequencies));
+                'preset', 'div.cb.spectral.9',... 
+                'length', numel(unique(obj.temporalFrequencies)));
 
             obj.showFigure('symphonyui.builtin.figures.ResponseFigure',...
                 obj.rig.getDevice(obj.amp));
@@ -66,14 +68,16 @@ classdef GratingTemporal < edu.washington.riekelab.protocols.RiekeLabStageProtoc
             if ~strcmp(obj.onlineAnalysis, 'none')
                 obj.showFigure('edu.washington.riekelab.patterson.figures.F1F2Figure',...
                     obj.rig.getDevice(obj.amp), obj.temporalFrequencies, obj.onlineAnalysis,...
-                    obj.preTime, obj.stimTime, 'waitTime', obj.waitTime,...
-                    'xName', 'temporalFrequency', 'showF2', false);
+                    obj.preTime, obj.stimTime, 'WaitTime', obj.waitTime,...
+                    'VariedParameterName', 'temporalFrequency',...
+                    'GraphName', 'Temporal Frequency Tuning');
             end
         end
 
         function p = createPresentation(obj)
             device = obj.rig.getDevice('Stage');
             canvasSize = device.getCanvasSize();
+            centerOffsetPix = obj.rig.getDevice('Stage').um2pix(obj.centerOffset);
 
             p = stage.core.Presentation((obj.preTime + obj.waitTime + obj.stimTime + obj.tailTime) * 1e-3);
             p.setBackgroundColor(obj.backgroundIntensity);
@@ -93,6 +97,17 @@ classdef GratingTemporal < edu.washington.riekelab.protocols.RiekeLabStageProtoc
             imgController = stage.builtin.controllers.PropertyController(grate, 'imageMatrix',...
                 @(state)setGratingDrift(obj, state.time - (obj.preTime + obj.waitTime) * 1e-3));
             p.addController(imgController);
+
+            if obj.apertureDiameter > 0
+                aperture = stage.builtin.stimuli.Rectangle();
+                aperture.position = canvasSize/2 + centerOffsetPix;
+                aperture.color = obj.backgroundIntensity;
+                aperture.size = 2 * max(canvasSize) * ones(1, 2);
+                mask = stage.core.Mask.createCircularAperture(...
+                    obj.apertureDiameter / (2 * max(canvasSize)));
+                aperture.setMask(mask);
+                p.addStimulus(aperture);
+            end
 
             function g = setGratingDrift(obj, time)
                 if time >= 0
