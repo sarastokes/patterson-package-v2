@@ -65,7 +65,7 @@ classdef F1F2Figure < symphonyui.core.FigureHandler
             obj.epochNum = 0;
 
             if obj.debug
-                dataDir = [fileparts(fileparts(mfilename('fullpath'))), '\+test\'];
+                dataDir = [fileparts(fileparts(mfilename('fullpath'))), '\+utils\test\'];
                 obj.debugData = dlmread([dataDir, 'demo_modulation_data.txt']);
             end
 
@@ -96,7 +96,7 @@ classdef F1F2Figure < symphonyui.core.FigureHandler
                 'TooltipString', 'Save Picture',...
                 'Separator', 'on',...
                 'ClickedCallback', @obj.onSelectedCaptureFigure);
-            iconDir = [fileparts(fileparts(mfilename('fullpath'))), '\+icons\'];
+            iconDir = [fileparts(fileparts(mfilename('fullpath'))), '\+utils\icons\'];
             setIconImage(captureFigureButton, [iconDir, 'save_image.gif']);
               
             obj.axesHandle(1) = subplot(3,1,1:2,...

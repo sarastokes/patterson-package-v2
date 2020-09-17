@@ -35,7 +35,7 @@ classdef AreaSummationFigure < symphonyui.core.FigureHandler
         
         function createUi(obj)
             import appbox.*;
-            iconDir = [fileparts(fileparts(mfilename('fullpath'))), '\+icons\'];
+            iconDir = [fileparts(fileparts(mfilename('fullpath'))), '\+utils\icons\'];
             toolbar = findall(obj.figureHandle, 'Type', 'uitoolbar');
             fitGaussianButton = uipushtool( ...
                 'Parent', toolbar, ...
