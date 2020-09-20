@@ -1,6 +1,9 @@
 # CHANGELOG
 
 ### 20200916
+- Added `DirectionSelectivityFigure`, debugged with `TestDirections` protocol
+
+### 20200916
 - Added `TestModulation` that runs on `SimulatedConfocal` and demos `F1F2Figure` with real data. 
 - Removed custom `SineGenerator` for simplicity
 - Improved `F1F2Figure`

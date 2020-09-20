@@ -39,10 +39,6 @@ classdef BarDirection < edu.washington.riekelab.protocols.RiekeLabProtocol
                 error('numberOfAverages is not a factor of directions');
             end
 
-            if obj.rig.getDevice('Stage').um2pix(obj.apertureDiameter) > min(obj.rig.getDevice('Stage').getCanvasSize())
-                error('apertureDiameter exceeds minimum canvasSize');
-            end
-
             % Set) directions for each epoch
             obj.allDirections = repmat(obj.directions,... 
                 [1, obj.numberOfAverages / numel(obj.directions)]);
@@ -59,7 +55,8 @@ classdef BarDirection < edu.washington.riekelab.protocols.RiekeLabProtocol
 
             % Set up figures
             rgb = edu.washington.riekelab.patterson.utils.multigradient(...
-                'preset', 'div.cb.spectral.9', 'length', numel(obj.directions));
+                'preset', 'div.cb.spectral.9',... 
+                'length', numel(unique(obj.directions)));
 
             obj.showFigure('symphonyui.builtin.figures.ResponseFigure',...
                 obj.rig.getDevice(obj.amp));
@@ -68,6 +65,12 @@ classdef BarDirection < edu.washington.riekelab.protocols.RiekeLabProtocol
                 'recordingType', obj.onlineAnalysis, 'sweepColor', rgb);
             obj.showFigure('edu.washington.riekelab.patterson.figures.FrameTimingFigure',...
                 obj.rig.getDevice('Stage'), obj.rig.getDevice('Frame Monitor'));     
+
+            if ~strcmp(obj.onlineAnalysis, 'none')
+                obj.showFigure('edu.washington.riekelab.patterson.figures.DirectionSelectivityFigure',...
+                    obj.rig.getDevice(obj.amp), obj.onlineAnalysis,...
+                    obj.preTime, obj.stimTime);
+            end
         end
 
         function p = createPresentation(obj)
