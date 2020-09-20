@@ -128,10 +128,6 @@ classdef DirectionSelectivityFigure < symphonyui.core.FigureHandler
         end
 
         function handleEpoch(obj, epoch)
-
-            assignin('base', 'obj', obj);
-            assignin('base', 'epoch', epoch);
-            
             obj.epochNum = obj.epochNum + 1;
 
             if ~obj.debug

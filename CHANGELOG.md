@@ -1,5 +1,8 @@
 # CHANGELOG
 
+### 20200917
+- Removed some debugging code from `DirectionSelectivityFigure` and `F1F2Figure`
+
 ### 20200916
 - Added `DirectionSelectivityFigure`, debugged with `TestDirections` protocol
 

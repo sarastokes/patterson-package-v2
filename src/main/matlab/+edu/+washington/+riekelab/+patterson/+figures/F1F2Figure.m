@@ -24,7 +24,7 @@ classdef F1F2Figure < symphonyui.core.FigureHandler
         debug
     end
 
-    properties (Hidden, SetAccess = private)
+    properties (Hidden, Access = private)
         axesHandle
         lineHandle
         epochNum
