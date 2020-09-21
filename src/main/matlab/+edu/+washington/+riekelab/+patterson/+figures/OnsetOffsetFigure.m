@@ -2,10 +2,11 @@ classdef OnsetOffsetFigure < symphonyui.core.FigureHandler
     % ONSETOFFSETFIGURE
     %
     % Description:
-    %	Plots spike count or charge during onset and offset of a stimulus
+    %	Plots spike count or charge during onset and/or offset of a stimulus
     %
     % History:
     %	10Mar2019 - SSP
+    %   19Sep2020 - SSP - Added option to hide offset to expand use
     % -------------------------------------------------------------------------
     
     properties (SetAccess = private)
@@ -15,6 +16,7 @@ classdef OnsetOffsetFigure < symphonyui.core.FigureHandler
         xRange
         
         xName
+        showOffset
         recordingType
     end
     
@@ -42,10 +44,14 @@ classdef OnsetOffsetFigure < symphonyui.core.FigureHandler
             ip = inputParser();
             ip.CaseSensitive = false;
             addParameter(ip, 'recordingType', 'extracellular', @ischar);
+            addParameter(ip, 'showOffset', true, @islogical);
+            addParameter(ip, 'graphTitle', 'Onset Offset Figure', @ischar);
             addParameter(ip, 'xName', [], @isvector);
             parse(ip, varargin{:});
             
             obj.recordingType = ip.Results.recordingType;
+            obj.showOffset = ip.Results.showOffset;
+            obj.graphTitle = ip.Results.graphTitle;
             obj.xName = ip.Results.xName;
             
             obj.createUi();
@@ -54,10 +60,6 @@ classdef OnsetOffsetFigure < symphonyui.core.FigureHandler
         function createUi(obj)
             import appbox.*;
             
-            set(obj.figureHandle,...
-                'Name', 'OnsetOffsetFigure',...
-                'Color', 'w');
-            
             toolbar = findall(obj.figureHandle, 'Type', 'uitoolbar');
             captureFigureButton = uipushtool(...
                 'Parent', toolbar,...
@@ -65,7 +67,7 @@ classdef OnsetOffsetFigure < symphonyui.core.FigureHandler
                 'Separator', 'on',...
                 'ClickedCallback', @obj.onSelectedCaptureFigure);
             iconDir = [fileparts(fileparts(mfilename('fullpath'))), '\+utils\icons\'];
-            setIconImage(captureFigureButton, [iconDir, 'save_image.png']);
+            setIconImage(captureFigureButton, [iconDir, 'save_image.gif']);
             
             obj.axesHandle = axes('Parent', obj.figureHandle,...
                 'FontName', get(obj.figureHandle, 'DefaultUicontrolFontName'),...
@@ -82,6 +84,9 @@ classdef OnsetOffsetFigure < symphonyui.core.FigureHandler
                 otherwise
                     ylabel(obj.axesHandle,'Charge transfer (pC)')
             end
+            
+            set(obj.figureHandle, 'Color', 'w', 'Renderer', 'painters');
+            obj.setTitle(obj.graphTitle);
         end
         
         function clear(obj)
@@ -174,11 +179,11 @@ classdef OnsetOffsetFigure < symphonyui.core.FigureHandler
             else
                 set(obj.avgOffset, 'XData', groupNames, 'YData', avgOnset);
             end
-            if isempty(obj.avgOffset)
+            if and(isempty(obj.avgOffset), obj.showOffset)
                 obj.avgOffset = line(groupNames, avgOffset,...
                     'Parent', obj.axesHandle,...
                     'Marker', 'o', 'Color', obj.OFF_RGB, 'LineWidth', 1.5);
-            else
+            elseif obj.showOffset
                 set(obj.avgOffset, 'XData', groupNames, 'YData', avgOffset);
             end
             

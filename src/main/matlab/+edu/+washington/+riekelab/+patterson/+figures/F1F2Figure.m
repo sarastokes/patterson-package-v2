@@ -24,9 +24,8 @@ classdef F1F2Figure < symphonyui.core.FigureHandler
         debug
     end
 
-    properties (Hidden, Access = private)
+    properties (Access = private)
         axesHandle
-        lineHandle
         epochNum
         data
 
@@ -51,7 +50,7 @@ classdef F1F2Figure < symphonyui.core.FigureHandler
             addParameter(ip, 'ShowF2', false, @islogical);
             addParameter(ip, 'VariedParameterName', [], @ischar);
             addParameter(ip, 'GraphTitle', [], @ischar);
-            addParameter(ip, 'Debug', false, @islogical);
+            addParameter(ip, 'Debug', 'none', @ischar);
             parse(ip, varargin{:});
 
             obj.temporalFrequency = ip.Results.TemporalFrequency;
@@ -64,9 +63,16 @@ classdef F1F2Figure < symphonyui.core.FigureHandler
             % Tracks epochs in case there is no varied parameter
             obj.epochNum = 0;
 
-            if obj.debug
+            if ~strcmp(obj.debug, 'none')
                 dataDir = [fileparts(fileparts(mfilename('fullpath'))), '\+utils\test\'];
-                obj.debugData = dlmread([dataDir, 'demo_modulation_data.txt']);
+                switch obj.debug
+                    case 'contrast_spikes'
+                        obj.debugData = dlmread([dataDir, 'demo_modulation_data.txt']);
+                    case 'grating'
+                        obj.debugData = dlmread([dataDir, 'demo_grating_data.txt']);
+                    case 'bar_vclamp'
+                        obj.debugData = dlmread([dataDir, 'demo_bar_vclamp_data.txt']);
+                end
             end
 
             obj.createUi();
@@ -109,7 +115,7 @@ classdef F1F2Figure < symphonyui.core.FigureHandler
                 'Parent', obj.figureHandle,...
                 'FontName', get(obj.figureHandle, 'DefaultUicontrolFontName'),...
                 'FontSize', get(obj.figureHandle, 'DefaultLegendFontSize'),...
-                'XTickMode', 'auto', 'YLim', [-180 180]);
+                'XTickMode', 'auto', 'YLim', [-180 180], 'YTick', -180:90:180);
 
             set(obj.figureHandle, 'Color', 'w', 'Renderer', 'painters');
             
@@ -151,94 +157,106 @@ classdef F1F2Figure < symphonyui.core.FigureHandler
 
             if ~obj.debug
                 response = epoch.getResponse(obj.device);
-                y = response.getData();
+                quantities = response.getData();
                 sampleRate = response.sampleRate.quantityInBaseUnits;
             else
-                y = obj.debugData(obj.epochNum, :);
+                quantities = obj.debugData(obj.epochNum, :);
                 sampleRate = 10000;
             end
             
             prePts = (obj.preTime+obj.waitTime) * 1e-3 * sampleRate;
-            stimFrames = obj.stimTime * 1e-3 * obj.BINRATE;
+            stimPts = obj.stimTime * 1e-3 * sampleRate;
+            
 
             if strcmp(obj.onlineAnalysis, 'extracellular')
-                res = edu.washington.riekelab.patterson.utils.spikeDetectorOnline(y, [], sampleRate);
-                y = zeros(size(y));
+                res = edu.washington.riekelab.patterson.utils.spikeDetectorOnline(quantities, [], sampleRate);
+                y = zeros(size(quantities));
                 y(res.sp) = 1;
                 y = edu.washington.riekelab.patterson.utils.binSpikeRate(...
-                    y(prePts+1:end), obj.BINRATE, sampleRate);
+                    y(prePts+1 : prePts + stimPts), obj.BINRATE, sampleRate);
             else
+                y = quantities;
                 if prePts > 0
                     y = y - median(y(1:prePts));
                 else
                     y = y - median(y);
                 end
                 y = edu.washington.riekelab.patterson.utils.binData(...
-                    y(prePts+1:end), obj.BINRATE, sampleRate);
+                    y(prePts+1 : prePts+stimPts), obj.BINRATE, sampleRate);
             end
-
-            binSize = obj.BINRATE / obj.temporalFrequency;
-            numBins = floor(stimFrames/binSize);
-            avgCycle = zeros(1, floor(binSize));
-            for k = 1:numBins
-                index = round((k-1)*binSize) + (1:floor(binSize));
-                index(index > length(y)) = [];
-                ytmp = y(index);
-                avgCycle = avgCycle + ytmp(:)';
+            
+            cycleLength = obj.BINRATE / obj.temporalFrequency;
+            numCycles = floor(length(y) / cycleLength);
+            
+            cycles = zeros(numCycles, floor(cycleLength));
+            for i = 1:numCycles
+                idx = round(((i - 1) * cycleLength + (1:floor(cycleLength))));
+                cycles(i, :) = y(idx);
             end
-            avgCycle = avgCycle / numBins;
-
+            
+            avgCycle = mean(cycles, 1);
+          
             ft = fft(avgCycle);
+            F0 = abs(ft(1)) / length(avgCycle) * 2;
             F1 = abs(ft(2)) / length(avgCycle) * 2;
             F2 = abs(ft(3)) / length(avgCycle) * 2;
             P1 = rad2deg(angle(ft(2)));
+            P2 = rad2deg(angle(ft(3)));
             
             if isempty(obj.data)
                 % Check for stored data
                 storedData = obj.storedTable();
                 if isempty(storedData)
-                    obj.data = table(xval, F1, F2, P1,...
-                        'VariableNames', {'X', 'F1', 'F2', 'P1'});
+                    obj.data = table(xval, F0, F1, F2, P1, P2,...
+                        'VariableNames', {'X', 'F0', 'F1', 'F2', 'P1', 'P2'});
                 else
                     obj.data = storedData;
                 end
             else
-                obj.data = [obj.data; {xval, F1, F2, P1}];
+                obj.data = [obj.data; {xval, F0, F1, F2, P1, P2}];
                 obj.data = sortrows(obj.data, 'X', 'ascend');
             end
 
             cla(obj.axesHandle(1)); cla(obj.axesHandle(2));
 
-            % Plot the raw data
+            % Plot the raw data (just for F1...)
             line(obj.data.X, obj.data.F1,...
                 'Parent', obj.axesHandle(1),...
-                'Marker', 'o', 'Color', [0.5, 0.5, 1],...
-                'LineWidth', 1.5, 'LineStyle', 'none');
-            if obj.showF2
-                line(obj.data.X, obj.data.F2,...
-                    'Parent', obj.axesHandle(1),...
-                    'Marker', 'o', 'Color', [1, 0.5, 0.5],... 
-                    'LineWidth', 1.5, 'LineStyle', 'none');
-            end
+                'Marker', 'x', 'MarkerSize', 5, 'Color', [0.5, 0.5, 0.5],...
+                'LineWidth', 1, 'LineStyle', 'none',...
+                'DisplayName', 'F1 Data');
             line(obj.data.X, obj.data.P1,...
                 'Parent', obj.axesHandle(2),...
-                'Marker', 'o', 'Color', [0.5, 0.5, 1],...
-                'LineWidth', 1.5, 'LineStyle', 'none');
+                'Marker', 'x', 'MarkerSize', 5, 'Color', [0.5, 0.5, 0.5],...
+                'LineWidth', 1, 'LineStyle', 'none');
                 
             % Plot the averages
             [G, groupNames] = findgroups(obj.data.X);
-            line(groupNames, splitapply(@mean, obj.data.F1, G),...
-                'Parent', obj.axesHandle(1),...
-                'Marker', 'o', 'Color', 'b', 'LineWidth', 1.5);
             if obj.showF2
                 line(groupNames, splitapply(@mean, obj.data.F2, G),...
                     'Parent', obj.axesHandle(1),...
-                    'Marker', 'o', 'Color', 'r', 'LineWidth', 1.5);
+                    'Marker', 'o', 'Color', [1, 0.34, 0.34],... 
+                    'LineWidth', 1.5, 'MarkerFaceColor', [1, 0.82, 0.82],...
+                    'DisplayName', 'F2 Avg');
+                line(groupNames, splitapply(@mean, obj.data.P2, G),...
+                    'Parent', obj.axesHandle(2),...
+                    'Marker', 'o', 'Color', [1, 0.34, 0.34],...
+                    'LineWidth', 1.5, 'MarkerFaceColor', [1, 0.82, 0.82],...
+                    'DisplayName', 'F2');
             end
+            line(groupNames, splitapply(@mean, obj.data.F1, G),...
+                'Parent', obj.axesHandle(1),...
+                'Marker', 'o', 'Color', [0.54, 0.6, 1],... 
+                'LineWidth', 1.5, 'MarkerFaceColor', [0.77, 0.8, 1],...
+                'DisplayName', 'F1 Avg');
+            
             line(groupNames, splitapply(@mean, obj.data.P1, G),...
                 'Parent', obj.axesHandle(2),...
-                'Marker', 'o', 'Color', 'b', 'LineWidth', 1.5);               
-
+                'Marker', 'o', 'Color', [0.54, 0.6, 1],... 
+                'LineWidth', 1.5, 'MarkerFaceColor', [0.77, 0.8, 1]);
+            
+            % legend(obj.axesHandle(1), 'FontSize', 7,... 
+            %     'Location', 'southoutside', 'Orientation', 'horizontal');
         end
     end
 

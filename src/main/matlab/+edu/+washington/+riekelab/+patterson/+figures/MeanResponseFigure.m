@@ -8,7 +8,7 @@ classdef MeanResponseFigure < symphonyui.core.FigureHandler
         storedSweepColor
     end
     
-    properties (Access = private)
+    properties %(Access = private)
         axesHandle
         sweeps
         sweepIndex
@@ -38,6 +38,9 @@ classdef MeanResponseFigure < symphonyui.core.FigureHandler
         
         function createUi(obj)
             import appbox.*;
+            
+            iconDir = [fileparts(fileparts(mfilename('fullpath'))), '\+utils\icons\'];
+            
             toolbar = findall(obj.figureHandle, 'Type', 'uitoolbar');
             storeSweepButton = uipushtool( ...
                 'Parent', toolbar, ...
@@ -53,12 +56,18 @@ classdef MeanResponseFigure < symphonyui.core.FigureHandler
                 'ClickedCallback', @obj.onSelectedClearStored);
             setIconImage(clearSweepButton,...
                 symphonyui.app.App.getResource('icons', 'sweep_clear.png'));
+            
+            heatMapButton = uipushtool(...
+                'Parent', toolbar,...
+                'TooltipString', 'Show heat map',...
+                'Separator', 'off',...
+                'ClickedCallback', @obj.onSelectedHeatMap);
+            setIconImage(heatMapButton, [iconDir, 'colors.gif']);
 
             captureFigureButton = uipushtool(...
                 'Parent', toolbar,...
                 'TooltipString', 'Capture Figure',...
                 'ClickedCallback', @obj.onSelectedCaptureFigure);
-            iconDir = [fileparts(fileparts(mfilename('fullpath'))), '\+utils\icons\'];
             setIconImage(captureFigureButton, [iconDir, 'save_image.gif']);
             
             obj.axesHandle = axes( ...
@@ -85,6 +94,9 @@ classdef MeanResponseFigure < symphonyui.core.FigureHandler
             if ~epoch.hasResponse(obj.device)
                 error(['Epoch does not contain a response for ' obj.device.name]);
             end
+            
+            assignin('base', 'obj', obj);
+            assignin('base', 'epoch', epoch);
             
             response = epoch.getResponse(obj.device);
             [quantities, units] = response.getData();
@@ -177,6 +189,27 @@ classdef MeanResponseFigure < symphonyui.core.FigureHandler
     end
     
     methods (Access = private)
+        
+        function onSelectedHeatMap(obj, ~, ~)
+            
+            G = cellfun(@(x) x.parameters(obj.groupBy{1}), obj.sweeps);
+            avgResponses = cellfun(@(x) x.line.YData, obj.sweeps,...
+                'UniformOutput', false);
+            avgResponses = vertcat(avgResponses{:});
+            
+            
+            ax = axes('Parent', figure());
+            pcolor(ax, avgResponses);
+            shading(ax, 'interp');
+            colormap(fliplr(...
+                edu.washington.riekelab.patterson.utils.lbmap(256, 'redblue')));
+            colorbar(ax);
+                
+            set(ax, 'XTickLabel', get(ax, 'XTick') / 10000,... 
+                'YTick', 1:numel(G), 'YTickLabel', G, 'YDir', 'reverse');
+            xlabel(ax, 'time (s)');
+            ylabel(ax, obj.groupBy{1});            
+        end
         
         function onSelectedStoreSweep(obj, ~, ~)
             if isempty(obj.sweepIndex)

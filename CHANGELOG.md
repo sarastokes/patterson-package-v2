@@ -1,5 +1,9 @@
 # CHANGELOG
 
+### 20200920
+- Lots of online analysis figure debugging
+- Added heat map to `MeanResponseFigure`
+
 ### 20200917
 - Removed some debugging code from `DirectionSelectivityFigure` and `F1F2Figure`
 

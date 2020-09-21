@@ -19,7 +19,7 @@ classdef DirectionSelectivityFigure < symphonyui.core.FigureHandler
         graphTitle
     end
 
-    properties (Hidden, Access = private)
+    properties (Access = private)
         axesHandle
         rawLine
         avgLine
