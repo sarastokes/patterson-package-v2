@@ -26,6 +26,7 @@ classdef F1F2Figure < symphonyui.core.FigureHandler
 
     properties (Access = private)
         axesHandle
+        fitLine
         epochNum
         data
 
@@ -96,6 +97,22 @@ classdef F1F2Figure < symphonyui.core.FigureHandler
                 'ClickedCallback', @obj.onSelectedClearStored);
             setIconImage(clearSweepButton,...
                 symphonyui.app.App.getResource('icons', 'sweep_clear.png'));
+            
+            
+            fitVonMisesButton = uipushtool( ...
+                'Parent', toolbar, ...
+                'TooltipString', 'Von Mises fit', ...
+                'Separator', 'on', ...
+                'ClickedCallback', @obj.onSelectedFitVonMises);
+            setIconImage(fitVonMisesButton, [iconDir, 'VonMises.gif']);
+
+            clearFitButton = uipushtool(...
+                'Parent', toolbar,...
+                'TooltipString', 'Clear Fit',...
+                'ClickedCallback', @obj.onSelectedClearFit);
+            setIconImage(clearFitButton,...
+                symphonyui.app.App.getResource('icons', 'sweep_clear.png'));   
+                
             
             captureFigureButton = uipushtool(...
                 'Parent', toolbar,...
@@ -261,6 +278,45 @@ classdef F1F2Figure < symphonyui.core.FigureHandler
     end
 
     methods (Access = private)
+        function onSelectedFitVonMises(obj, ~, ~)
+            % TODO: Use mean or raw data?
+            [G, directions] = findgroups(obj.data.X);
+            avgMag =  splitapply(@mean, obj.data.F1, G);
+
+            offsetFactor = min(avgMag);
+            [scaleFactor, idx] = max(avgMag - offsetFactor);
+            magNorm = (avgMag - offsetFactor) / scaleFactor;
+
+            out = edu.washington.riekelab.patterson.utils.VonMises(...
+                'X', directions, 'Y', magNorm,...
+                'mu', directions(idx));
+            
+            dsi = edu.washington.riekelab.patterson.utils.getDsiOsi(...
+                directions, avgMag);
+            
+            title(obj.axesHandle, sprintf('%u +- %.2f (dsi = %.2f)',... 
+                    round(out.mu), round(out.hwhh), round(dsi, 2)));
+
+            smoothFit = out.yFitSmooth * scaleFactor + offsetFactor;
+            if isempty(obj.fitLine)
+                obj.fitLine = line(out.xSmooth, smoothFit,...
+                    'Parent', obj.axesHandle,...
+                    'Color', [0.51, 0, 0], 'LineWidth', 1.5);
+            else
+                set(obj.fitLine, 'XData', out.xSmooth, 'YData', smoothFit);
+            end
+        end
+        
+        function onSelectedClearFit(obj, ~, ~)
+            if ~isempty(obj.fitLine)
+                if isvalid(obj.fitLine)
+                    delete(obj.fitLine);
+                end
+                obj.fitLine = [];
+            end
+            obj.setTitle(obj.graphTitle);
+        end
+        
         function onSelectedStoreData(obj, ~, ~)
             obj.storedTable('Clear');
             obj.storedTable(obj.data);
